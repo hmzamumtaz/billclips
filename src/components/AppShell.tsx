@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 
-const publicPages = ["/login", "/signup"];
+const publicPages = ["/", "/login", "/signup"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
