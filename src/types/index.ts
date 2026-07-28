@@ -116,6 +116,19 @@ export interface IntegrationSetting {
   updated_at: string;
 }
 
+export interface NotificationPreferences {
+  id: string;
+  user_id: string;
+  daily_overdue_summary: boolean;
+  payment_received: boolean;
+  weekly_ar_report: boolean;
+  reminder_sent: boolean;
+  invoice_opened: boolean;
+  email: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DashboardStats {
   totalOutstanding: number;
   cashCollectedThisMonth: number;

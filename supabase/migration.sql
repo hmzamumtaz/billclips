@@ -98,7 +98,8 @@ CREATE TABLE user_subscriptions (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   plan_id TEXT NOT NULL REFERENCES plans(id),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'canceled', 'past_due', 'trialing')),
-  stripe_subscription_id TEXT,
+  provider TEXT DEFAULT 'paddle',
+  provider_subscription_id TEXT,
   current_period_start TIMESTAMPTZ,
   current_period_end TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -117,6 +118,19 @@ CREATE TABLE integration_settings (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE notification_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  daily_overdue_summary BOOLEAN DEFAULT true,
+  payment_received BOOLEAN DEFAULT true,
+  weekly_ar_report BOOLEAN DEFAULT false,
+  reminder_sent BOOLEAN DEFAULT true,
+  invoice_opened BOOLEAN DEFAULT false,
+  email TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE INDEX idx_invoices_user_id ON invoices(user_id);
 CREATE INDEX idx_invoices_status ON invoices(status);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
@@ -127,8 +141,9 @@ CREATE INDEX idx_reminders_log_invoice ON reminders_log(invoice_id);
 CREATE INDEX idx_business_profiles_user ON business_profiles(user_id);
 CREATE INDEX idx_integrations_user ON integration_settings(user_id);
 CREATE INDEX idx_subscriptions_user ON user_subscriptions(user_id);
+CREATE INDEX idx_notifications_user ON notification_preferences(user_id);
 
 INSERT INTO plans (id, name, description, price_monthly_cents, price_yearly_cents, features, max_invoices, max_clients, max_sequences) VALUES
 ('free', 'Free', 'For freelancers just getting started', 0, 0, '["Up to 10 invoices/month", "Basic email reminders", "1 reminder sequence", "Email support"]', 10, 10, 1),
-('pro', 'Pro', 'For growing businesses', 2900, 29000, '["Unlimited invoices", "Custom reminder sequences", "SendGrid integration", "Stripe integration", "Priority support", "Analytics dashboard"]', -1, -1, 5),
-('enterprise', 'Enterprise', 'For large teams and agencies', 9900, 99000, '["Everything in Pro", "Unlimited sequences", "Team members", "Custom branding", "API access", "Dedicated support", "SLA guarantee"]', -1, -1, -1);
+('pro', 'Pro', 'For growing businesses', 300, 3000, '["Unlimited invoices", "Custom reminder sequences", "SendGrid integration", "Payment integrations", "Priority support", "Analytics dashboard"]', -1, -1, 5),
+('enterprise', 'Enterprise', 'For large teams and agencies', 500, 5000, '["Everything in Pro", "Unlimited sequences", "Team members", "Custom branding", "API access", "Dedicated support", "Global payments via Paddle"]', -1, -1, -1);
