@@ -39,7 +39,7 @@ export default function InvoicesPage() {
       const res = await fetch(`/api/invoices?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
       setInvoices(await res.json());
-    } catch (err) { toast.error("Failed to load invoices"); console.error(err); }
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, [search, statusFilter, sortKey, sortDir]);
 
@@ -104,8 +104,14 @@ export default function InvoicesPage() {
 
   async function seedSampleData() {
     setSeeding(true);
-    try { const res = await fetch("/api/seed", { method: "POST" }); const data = await res.json(); if (res.ok) { toast.success(data.message); fetchInvoices(); } else toast.error(data.error); }
-    catch { toast.error("Failed to seed data"); }
+    try {
+      const { data: { session } } = await (await import("@/lib/supabase")).createBrowserSupabaseClient().auth.getSession();
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (session?.access_token) headers["Authorization"] = `Bearer ${session.access_token}`;
+      const res = await fetch("/api/seed", { method: "POST", headers });
+      const data = await res.json();
+      if (res.ok) { toast.success(data.message); fetchInvoices(); } else toast.error(data.error);
+    } catch { toast.error("Failed to seed data"); }
     finally { setSeeding(false); }
   }
 

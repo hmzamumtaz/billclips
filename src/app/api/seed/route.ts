@@ -1,3 +1,4 @@
+import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getServerUser } from "@/lib/api-auth";
 
@@ -27,9 +28,9 @@ function randomDate(index: number) {
   return d.toISOString().split("T")[0];
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const user = await getServerUser();
+    const user = await getServerUser(request);
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const supabase = createServerSupabaseClient();
