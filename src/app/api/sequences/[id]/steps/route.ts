@@ -1,16 +1,28 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
     const body = await request.json();
 
     if (!body.step_number || !body.delay_days === undefined || !body.subject || !body.body_text) {
       return Response.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const { data: seq } = await supabase
+      .from("sequences")
+      .select("user_id")
+      .eq("id", id)
+      .single();
+
+    if (!seq || seq.user_id !== user.id) {
+      return Response.json({ error: "Sequence not found" }, { status: 404 });
     }
 
     const { data, error } = await supabase

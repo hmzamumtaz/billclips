@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
 import { Toaster } from "react-hot-toast";
 
@@ -19,6 +20,8 @@ export const metadata: Metadata = {
   description: "Automated accounts receivable and late invoice management platform",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,22 +33,24 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex">
-        <Sidebar />
-        <div className="flex-1 ml-64 min-h-screen flex flex-col">
-          {children}
-        </div>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: "var(--card-bg)",
-              color: "var(--foreground)",
-              border: "1px solid var(--card-border)",
-              fontSize: "14px",
-            },
-          }}
-        />
+        <AuthProvider>
+          <Sidebar />
+          <div className="flex-1 ml-64 min-h-screen flex flex-col">
+            {children}
+          </div>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: "var(--card-bg)",
+                color: "var(--foreground)",
+                border: "1px solid var(--card-border)",
+                fontSize: "14px",
+              },
+            }}
+          />
+        </AuthProvider>
       </body>
     </html>
   );

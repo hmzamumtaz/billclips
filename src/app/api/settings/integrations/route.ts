@@ -1,71 +1,51 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
 
     const { data, error } = await supabase
       .from("integration_settings")
       .select("*")
-      .eq("user_id", "00000000-0000-0000-0000-000000000000");
+      .eq("user_id", user.id);
 
     if (error) throw error;
-    return Response.json(data);
+    return Response.json(data || []);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to fetch integrations";
     return Response.json({ error: msg }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
     const body = await request.json();
 
-    const { data: existing } = await supabase
-      .from("integration_settings")
-      .select("*")
-      .eq("user_id", "00000000-0000-0000-0000-000000000000")
-      .eq("provider", body.provider)
-      .single();
-
-    if (existing) {
-      const { data, error } = await supabase
-        .from("integration_settings")
-        .update({
-          api_key: body.api_key || existing.api_key,
-          webhook_secret: body.webhook_secret || existing.webhook_secret,
-          is_connected: body.is_connected !== undefined ? body.is_connected : existing.is_connected,
-          settings: body.settings || existing.settings,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return Response.json(data);
-    }
-
     const { data, error } = await supabase
       .from("integration_settings")
-      .insert({
-        user_id: "00000000-0000-0000-0000-000000000000",
+      .upsert({
+        user_id: user.id,
         provider: body.provider,
         api_key: body.api_key || null,
         webhook_secret: body.webhook_secret || null,
-        is_connected: body.is_connected || false,
+        is_connected: body.is_connected ?? false,
         settings: body.settings || {},
-      })
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id, provider" })
       .select()
       .single();
 
     if (error) throw error;
-    return Response.json(data, { status: 201 });
+    return Response.json(data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to save integration";
     return Response.json({ error: msg }, { status: 500 });

@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
     const body = await request.json();
@@ -26,7 +28,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
     const { error } = await supabase.from("sequence_steps").delete().eq("id", id);

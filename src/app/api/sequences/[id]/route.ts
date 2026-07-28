@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
 
@@ -12,6 +14,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       .from("sequences")
       .select("*, steps:sequence_steps(*)")
       .eq("id", id)
+      .eq("user_id", user.id)
       .single();
 
     if (error) {
@@ -31,7 +34,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
     const body = await request.json();
@@ -46,6 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
+      .eq("user_id", user.id)
       .select()
       .single();
 
@@ -59,11 +65,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const supabase = createServerSupabaseClient();
 
-    const { error } = await supabase.from("sequences").delete().eq("id", id);
+    const { error } = await supabase.from("sequences").delete().eq("id", id).eq("user_id", user.id);
     if (error) throw error;
     return Response.json({ success: true });
   } catch (err) {

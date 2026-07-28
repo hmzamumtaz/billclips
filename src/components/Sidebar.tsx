@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   FileText,
@@ -10,9 +10,10 @@ import {
   Receipt,
   User,
   CreditCard,
-  ChevronDown,
+  LogOut,
 } from "lucide-react";
-import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import toast from "react-hot-toast";
 
 const mainNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -26,12 +27,47 @@ const bottomNav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+const publicPages = ["/login", "/signup"];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading, signOut } = useAuth();
+
+  if (publicPages.includes(pathname)) return null;
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
+  }
+
+  async function handleSignOut() {
+    await signOut();
+    toast.success("Signed out");
+    router.push("/login");
+  }
+
+  const initials = user?.email?.substring(0, 2).toUpperCase() || "BC";
+
+  if (loading) {
+    return (
+      <aside className="fixed left-0 top-0 h-full w-64 bg-[var(--sidebar-bg)] flex flex-col z-50">
+        <div className="p-5 border-b border-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/20">
+              <Receipt className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <span className="text-lg font-bold text-white tracking-tight">BillClips</span>
+              <p className="text-[11px] text-emerald-400/70 font-medium -mt-0.5">AR Management</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+        </div>
+      </aside>
+    );
   }
 
   return (
@@ -88,16 +124,22 @@ export function Sidebar() {
         })}
       </div>
 
-      <div className="p-3 border-t border-slate-800/50">
-        <Link href="/profile" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--sidebar-hover)] transition-colors group">
-          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center shadow-sm">
-            <span className="text-xs font-bold text-white">BC</span>
+      <div className="p-3 border-t border-slate-800/50 space-y-1">
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-full flex items-center justify-center shadow-sm shrink-0">
+            <span className="text-xs font-bold text-white">{initials}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-200 truncate">Free Plan</p>
-            <p className="text-[11px] text-emerald-400/70">Upgrade</p>
+            <p className="text-sm font-medium text-slate-200 truncate">{user?.email || "User"}</p>
           </div>
-        </Link>
+        </div>
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-sm text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all duration-150"
+        >
+          <LogOut className="w-4.5 h-4.5" />
+          Sign out
+        </button>
       </div>
     </aside>
   );

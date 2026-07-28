@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { User, Mail, Globe, Clock, Save } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { User, Mail, Globe, Clock, Save, Camera, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { createBrowserSupabaseClient } from "@/lib/supabase";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -11,14 +13,20 @@ import type { User as UserType } from "@/types";
 
 const timezones = [
   "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-  "Europe/London", "Europe/Berlin", "Europe/Paris", "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Australia/Sydney",
+  "Europe/London", "Europe/Berlin", "Europe/Paris", "Asia/Tokyo", "Asia/Shanghai",
+  "Asia/Karachi", "Asia/Kolkata", "Australia/Sydney",
 ];
 
 export default function ProfilePage() {
+  const { user: authUser } = useAuth();
   const [profile, setProfile] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ full_name: "", business_name: "", email: "", timezone: "UTC" });
+
+  const supabase = createBrowserSupabaseClient();
 
   useEffect(() => {
     fetchProfile();
@@ -33,7 +41,7 @@ export default function ProfilePage() {
         setForm({
           full_name: data.full_name || "",
           business_name: data.business_name || "",
-          email: data.email || "",
+          email: data.email || authUser?.email || "",
           timezone: data.timezone || "UTC",
         });
       }
@@ -54,14 +62,54 @@ export default function ProfilePage() {
           timezone: form.timezone,
         }),
       });
-      if (res.ok) toast.success("Profile updated");
+      if (res.ok) { toast.success("Profile updated"); fetchProfile(); }
       else toast.error("Failed to update");
     } catch { toast.error("Failed to update"); }
     finally { setSaving(false); }
   }
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const filePath = `avatars/${authUser?.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
+
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatar_url: publicUrl }),
+      });
+      if (!res.ok) throw new Error("Failed to save avatar");
+      toast.success("Avatar updated");
+      fetchProfile();
+    } catch (err) {
+      toast.error("Failed to upload image");
+      console.error(err);
+    }
+    finally { setUploading(false); }
+  }
+
+  const avatarUrl = profile?.avatar_url;
+  const initials = form.full_name
+    ? form.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : authUser?.email?.substring(0, 2).toUpperCase() || "BC";
+
   if (loading) {
-    return <div className="p-6 text-sm text-slate-400">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center flex-1">
+        <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -80,11 +128,34 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSave} className="space-y-4">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-sm">
-                  <span className="text-xl font-bold text-white">
-                    {form.full_name ? form.full_name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "BC"}
-                  </span>
+              <div className="flex items-center gap-5 mb-6">
+                <div className="relative group">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-sm">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl font-bold text-white">{initials}</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5 text-white" />
+                    )}
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-slate-900">{form.full_name || "Your Name"}</p>
@@ -139,9 +210,11 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-900">Current Plan</p>
-                <p className="text-sm text-slate-500 mt-0.5">Free</p>
+                <p className="text-sm text-slate-500 mt-0.5 capitalize">{profile?.plan || "Free"}</p>
               </div>
-              <Button variant="primary" size="sm" onClick={() => window.location.href = "/plans"}>Upgrade</Button>
+              <Button variant="primary" size="sm" onClick={() => window.location.href = "/plans"}>
+                {profile?.plan === "free" ? "Upgrade" : "Change Plan"}
+              </Button>
             </div>
           </CardContent>
         </Card>

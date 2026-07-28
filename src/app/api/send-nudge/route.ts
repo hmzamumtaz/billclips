@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function POST(request: NextRequest) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
     const { invoiceId } = await request.json();
 
@@ -16,6 +18,7 @@ export async function POST(request: NextRequest) {
       .from("invoices")
       .select("*")
       .eq("id", invoiceId)
+      .eq("user_id", user.id)
       .single();
 
     if (fetchError || !invoice) {
@@ -23,9 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const amount = (invoice.amount_cents / 100).toFixed(2);
-    const paymentLink = invoice.stripe_invoice_id
-      ? `https://pay.stripe.com/invoice/${invoice.stripe_invoice_id}`
-      : `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pay/${invoice.id}`;
+    const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/pay/${invoice.id}`;
 
     const subject = `Payment reminder for invoice of $${amount}`;
     const body = `Hi ${invoice.client_name},\n\nThis is a manual reminder that your invoice of $${amount} is due.\n\nPlease pay here: ${paymentLink}\n\nThank you!`;

@@ -1,8 +1,8 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
   full_name TEXT NOT NULL DEFAULT '',
   business_name TEXT NOT NULL DEFAULT '',
   avatar_url TEXT,
@@ -23,7 +23,7 @@ CREATE TABLE business_profiles (
   city TEXT,
   state TEXT,
   zip TEXT,
-  country TEXT DEFAULT 'US',
+  country TEXT DEFAULT 'PK',
   logo_url TEXT,
   website TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -115,7 +115,8 @@ CREATE TABLE integration_settings (
   is_connected BOOLEAN DEFAULT false,
   settings JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (user_id, provider)
 );
 
 CREATE TABLE notification_preferences (
@@ -143,7 +144,58 @@ CREATE INDEX idx_integrations_user ON integration_settings(user_id);
 CREATE INDEX idx_subscriptions_user ON user_subscriptions(user_id);
 CREATE INDEX idx_notifications_user ON notification_preferences(user_id);
 
+-- Auto-create users row on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, email, full_name)
+  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data ->> 'full_name', ''));
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- Enable RLS
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE business_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sequences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sequence_steps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reminders_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE integration_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+
+-- RLS policies
+CREATE POLICY "users_select_own" ON users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "users_insert_own" ON users FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "users_update_own" ON users FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "business_profiles_manage_own" ON business_profiles FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "invoices_manage_own" ON invoices FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "sequences_manage_own" ON sequences FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "sequence_steps_via_sequence" ON sequence_steps FOR ALL USING (
+  EXISTS (SELECT 1 FROM sequences WHERE id = sequence_steps.sequence_id AND user_id = auth.uid())
+);
+CREATE POLICY "reminders_log_via_invoice" ON reminders_log FOR ALL USING (
+  EXISTS (SELECT 1 FROM invoices WHERE id = reminders_log.invoice_id AND user_id = auth.uid())
+);
+CREATE POLICY "subscriptions_manage_own" ON user_subscriptions FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "integrations_manage_own" ON integration_settings FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "notifications_manage_own" ON notification_preferences FOR ALL USING (auth.uid() = user_id);
+
+-- Plans are public
+CREATE POLICY "plans_select_all" ON plans FOR SELECT USING (true);
+
 INSERT INTO plans (id, name, description, price_monthly_cents, price_yearly_cents, features, max_invoices, max_clients, max_sequences) VALUES
 ('free', 'Free', 'For freelancers just getting started', 0, 0, '["Up to 10 invoices/month", "Basic email reminders", "1 reminder sequence", "Email support"]', 10, 10, 1),
 ('pro', 'Pro', 'For growing businesses', 300, 3000, '["Unlimited invoices", "Custom reminder sequences", "SendGrid integration", "Payment integrations", "Priority support", "Analytics dashboard"]', -1, -1, 5),
-('enterprise', 'Enterprise', 'For large teams and agencies', 500, 5000, '["Everything in Pro", "Unlimited sequences", "Team members", "Custom branding", "API access", "Dedicated support", "Global payments via Paddle"]', -1, -1, -1);
+('enterprise', 'Enterprise', 'For large teams and agencies', 500, 5000, '["Everything in Pro", "Unlimited sequences", "Team members", "Custom branding", "API access", "Dedicated support", "Global payments via Paddle"]', -1, -1, -1)
+ON CONFLICT (id) DO NOTHING;

@@ -1,14 +1,17 @@
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
 
     const { data: invoices, error } = await supabase
       .from("invoices")
-      .select("*");
+      .select("*")
+      .eq("user_id", user.id);
 
     if (error) throw error;
 

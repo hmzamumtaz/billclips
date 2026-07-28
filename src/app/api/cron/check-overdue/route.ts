@@ -1,10 +1,8 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
 
 export async function POST(_request: NextRequest) {
   try {
-    validateEnv();
     const supabase = createServerSupabaseClient();
 
     const today = new Date().toISOString().split("T")[0];

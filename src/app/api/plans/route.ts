@@ -1,9 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
 
 export async function GET() {
   try {
-    validateEnv();
     const supabase = createServerSupabaseClient();
 
     const { data, error } = await supabase

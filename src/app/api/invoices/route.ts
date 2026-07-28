@@ -1,10 +1,12 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
 
     const { searchParams } = new URL(request.url);
@@ -13,7 +15,7 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get("sort") || "created_at";
     const dir = searchParams.get("dir") || "desc";
 
-    let query = supabase.from("invoices").select("*");
+    let query = supabase.from("invoices").select("*").eq("user_id", user.id);
 
     if (status && status !== "all") {
       query = query.eq("status", status);
@@ -36,7 +38,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
 
     const body = await request.json();
@@ -47,14 +51,15 @@ export async function POST(request: NextRequest) {
 
     const { count } = await supabase
       .from("invoices")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
 
     const invoiceNumber = `INV-${String((count || 0) + 1).padStart(4, "0")}`;
 
     const { data, error } = await supabase
       .from("invoices")
       .insert({
-        user_id: "00000000-0000-0000-0000-000000000000",
+        user_id: user.id,
         invoice_number: invoiceNumber,
         client_name: body.client_name,
         client_email: body.client_email,

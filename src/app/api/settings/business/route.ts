@@ -1,29 +1,23 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
-import { validateEnv } from "@/lib/env";
+import { getServerUser } from "@/lib/api-auth";
 
 export async function GET() {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
 
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("business_profiles")
       .select("*")
-      .eq("user_id", "00000000-0000-0000-0000-000000000000")
+      .eq("user_id", user.id)
       .single();
 
     if (error && error.code === "PGRST116") {
-      const { data: newProfile, error: insertError } = await supabase
-        .from("business_profiles")
-        .insert({ user_id: "00000000-0000-0000-0000-000000000000" })
-        .select()
-        .single();
-
-      if (insertError) throw insertError;
-      return Response.json(newProfile);
+      return Response.json(null);
     }
-
     if (error) throw error;
     return Response.json(data);
   } catch (err) {
@@ -32,23 +26,38 @@ export async function GET() {
   }
 }
 
-export async function PATCH(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
-    validateEnv();
+    const user = await getServerUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
     const supabase = createServerSupabaseClient();
     const body = await request.json();
 
     const { data, error } = await supabase
       .from("business_profiles")
-      .update({ ...body, updated_at: new Date().toISOString() })
-      .eq("user_id", "00000000-0000-0000-0000-000000000000")
+      .upsert({
+        user_id: user.id,
+        business_name: body.business_name || "",
+        business_email: body.business_email || null,
+        business_phone: body.business_phone || null,
+        address_line1: body.address_line1 || null,
+        address_line2: body.address_line2 || null,
+        city: body.city || null,
+        state: body.state || null,
+        zip: body.zip || null,
+        country: body.country || "PK",
+        logo_url: body.logo_url || null,
+        website: body.website || null,
+        updated_at: new Date().toISOString(),
+      })
       .select()
       .single();
 
     if (error) throw error;
     return Response.json(data);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to update business profile";
+    const msg = err instanceof Error ? err.message : "Failed to save business profile";
     return Response.json({ error: msg }, { status: 500 });
   }
 }

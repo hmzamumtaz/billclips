@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, CheckCircle2, XCircle, RefreshCw, Send, Building2, ExternalLink, Bell, Mail, CreditCard } from "lucide-react";
+import { Save, CheckCircle2, XCircle, RefreshCw, Send, Building2, ExternalLink, Bell, Mail, CreditCard, Landmark, Copy } from "lucide-react";
 import toast from "react-hot-toast";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,7 +20,7 @@ const integrationDefs = [
   {
     id: "paddle",
     name: "Paddle",
-    description: "Global payment processing — works in Pakistan. Accept credit cards, PayPal, and more.",
+    description: "Global payment processing — works in Pakistan.",
     icon: CreditCard,
     docsUrl: "https://paddle.com/docs",
     fields: [
@@ -52,6 +52,21 @@ const integrationDefs = [
   },
 ];
 
+const bankDetails = {
+  accountHolder: "MUHAMMAD HAMZA MUMTAZ",
+  accountNumber: "1000004282",
+  iban: "PK90FAYS3522301000004282",
+  bankName: "Faysal Bank IBB G.T. ROAD OKARA",
+  bankCode: "FAYS",
+};
+
+const copyableFields = [
+  { label: "Account Holder", value: bankDetails.accountHolder },
+  { label: "Account Number", value: bankDetails.accountNumber },
+  { label: "IBAN", value: bankDetails.iban },
+  { label: "Bank Name", value: bankDetails.bankName },
+];
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("business");
   const [loading, setLoading] = useState(true);
@@ -64,7 +79,7 @@ export default function SettingsPage() {
 
   const [profileForm, setProfileForm] = useState({
     business_name: "", business_email: "", business_phone: "",
-    address_line1: "", address_line2: "", city: "", state: "", zip: "", country: "US", website: "",
+    address_line1: "", address_line2: "", city: "", state: "", zip: "", country: "PK", website: "",
   });
 
   const [notifForm, setNotifForm] = useState({
@@ -88,7 +103,7 @@ export default function SettingsPage() {
           business_name: p.business_name || "", business_email: p.business_email || "",
           business_phone: p.business_phone || "", address_line1: p.address_line1 || "",
           address_line2: p.address_line2 || "", city: p.city || "", state: p.state || "",
-          zip: p.zip || "", country: p.country || "US", website: p.website || "",
+          zip: p.zip || "", country: p.country || "PK", website: p.website || "",
         });
       }
       if (iRes.ok) setIntegrations(await iRes.json());
@@ -111,7 +126,7 @@ export default function SettingsPage() {
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault(); setSaving("profile");
     try {
-      const res = await fetch("/api/settings/business", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profileForm) });
+      const res = await fetch("/api/settings/business", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profileForm) });
       if (res.ok) toast.success("Business profile saved"); else toast.error("Failed to save");
     } catch { toast.error("Failed to save"); }
     finally { setSaving(null); }
@@ -132,7 +147,7 @@ export default function SettingsPage() {
     }
 
     try {
-      const res = await fetch("/api/settings/integrations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const res = await fetch("/api/settings/integrations", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (res.ok) { toast.success(`${provider} saved`); fetchData(); }
       else toast.error("Failed to save");
     } catch { toast.error("Failed to save"); }
@@ -162,13 +177,18 @@ export default function SettingsPage() {
   async function saveNotifications(e: React.FormEvent) {
     e.preventDefault(); setSaving("notifications");
     try {
-      const res = await fetch("/api/settings/notifications", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(notifForm) });
+      const res = await fetch("/api/settings/notifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(notifForm) });
       if (res.ok) toast.success("Notification preferences saved"); else toast.error("Failed to save");
     } catch { toast.error("Failed to save"); }
     finally { setSaving(null); }
   }
 
   function getIntegration(provider: string) { return integrations.find((i) => i.provider === provider); }
+
+  function copyToClipboard(text: string, label: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied`);
+  }
 
   if (loading) return <div className="p-6 text-sm text-slate-400">Loading...</div>;
 
@@ -185,7 +205,6 @@ export default function SettingsPage() {
         <Tabs tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
         <div className="mt-6">
-          {/* BUSINESS PROFILE */}
           {activeTab === "business" && (
             <Card>
               <CardHeader>
@@ -220,13 +239,8 @@ export default function SettingsPage() {
             </Card>
           )}
 
-          {/* INTEGRATIONS */}
           {activeTab === "integrations" && (
             <div className="space-y-4">
-              <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-4">
-                Payment providers &amp; email services
-              </p>
-
               {integrationDefs.map((def) => {
                 const int = getIntegration(def.id);
                 const isConnected = int?.is_connected && int?.api_key;
@@ -265,7 +279,7 @@ export default function SettingsPage() {
                             defaultValue={
                               field.name === "from_email"
                                 ? (int?.settings as any)?.from_email || ""
-                                : int?.api_key || ""
+                                : int?.webhook_secret || int?.api_key || ""
                             }
                             placeholder={field.placeholder}
                           />
@@ -309,30 +323,40 @@ export default function SettingsPage() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-50 rounded-lg"><Building2 className="w-4 h-4 text-amber-600" /></div>
+                    <div className="p-2 bg-amber-50 rounded-lg"><Landmark className="w-4 h-4 text-amber-600" /></div>
                     <div>
                       <h2 className="text-sm font-semibold text-slate-900">Bank Transfer (Manual)</h2>
-                      <p className="text-xs text-slate-500 mt-0.5">Accept payments via bank transfer — works in any country</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Accept payments via bank transfer — recommended for Pakistan</p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-slate-600 mb-3">Share your bank details with clients to receive manual payments. Mark invoices as paid manually.</p>
-                  <div className="grid grid-cols-2 gap-4 max-w-md">
-                    <Input label="Bank Name" placeholder="Bank of Pakistan" />
-                    <Input label="Account Number" placeholder="1234-5678-90" />
-                    <Input label="Account Holder" placeholder="Business Name" />
-                    <Input label="IBAN / SWIFT" placeholder="PK..." />
+                  <p className="text-sm text-slate-600 mb-4">Share these details with clients to receive direct bank payments. Mark invoices as paid manually after receiving funds.</p>
+                  <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 max-w-lg">
+                    <div className="space-y-3">
+                      {copyableFields.map((field) => (
+                        <div key={field.label} className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-medium text-slate-500">{field.label}</p>
+                            <p className="text-sm font-medium text-slate-900 font-mono">{field.value}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(field.value, field.label)}
+                            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mt-3">
-                    <Button variant="secondary" size="sm"><Save className="w-3.5 h-3.5" /> Save Bank Details</Button>
-                  </div>
+                  <p className="text-xs text-slate-400 mt-3">Funds usually arrive within 1-2 business days for local transfers.</p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* NOTIFICATIONS */}
           {activeTab === "notifications" && (
             <Card>
               <CardHeader>

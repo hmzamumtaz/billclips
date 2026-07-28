@@ -1,11 +1,10 @@
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 import { createServerSupabaseClient } from '@/lib/supabase';
-import { getEnv, validateEnv } from '@/lib/env';
+import { getEnv } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
-    validateEnv();
     const env = getEnv();
     const supabase = createServerSupabaseClient();
 
@@ -19,9 +18,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!env.stripeWebhookSecret) {
+    if (!env.stripeSecretKey || !env.stripeWebhookSecret) {
       return Response.json(
-        { error: 'STRIPE_WEBHOOK_SECRET is not configured' },
+        { error: 'Stripe is not configured' },
         { status: 500 }
       );
     }
