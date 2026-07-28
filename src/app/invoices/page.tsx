@@ -229,41 +229,93 @@ export default function InvoicesPage() {
       </div>
 
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Invoice" size="lg">
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Client Name" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} placeholder="Acme Corp" required />
-            <Input label="Client Email" type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} placeholder="billing@acme.com" required />
-            <Input label="Client Phone" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} placeholder="+1 (555) 000-0000" />
-            <Input label="Amount (USD)" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" step="0.01" required />
-            <Input label="Due Date" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
+        <form onSubmit={handleCreate} className="space-y-6">
+          <div className="bg-blue-50/60 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Client Information</p>
+                <p className="text-xs text-blue-600">Who is this invoice for?</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Client Name" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} placeholder="e.g. Acme Corp" required />
+              <Input label="Client Email" type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} placeholder="e.g. billing@acme.com" required />
+              <Input label="Phone (optional)" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} placeholder="e.g. +1 (555) 000-0000" />
+              <Input label="Address (optional)" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} placeholder="e.g. 123 Main St, City" />
+            </div>
           </div>
-          <Input label="Client Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} placeholder="123 Main St, City" />
-          <div>
-            <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Optional notes..." />
+
+          <div className="bg-emerald-50/60 rounded-xl p-4 border border-emerald-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">Invoice Details</p>
+                <p className="text-xs text-emerald-600">Amount, due date, and notes</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Amount (USD)" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" step="0.01" required hint="Enter the total amount" />
+              <Input label="Due Date" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required hint="When payment is expected" />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Notes (optional)</label>
+              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Any additional details for this invoice…" />
+            </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button type="submit" loading={submitting}>Create Invoice</Button>
+            <Button type="submit" loading={submitting}><Plus className="w-4 h-4" />Create Invoice</Button>
           </div>
         </form>
       </Modal>
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Invoice" size="lg">
-        <form onSubmit={handleEdit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Client Name" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} required />
-            <Input label="Client Email" type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} required />
-            <Input label="Client Phone" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
-            <Input label="Amount (USD)" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} step="0.01" required />
-            <Input label="Due Date" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
+        <form onSubmit={handleEdit} className="space-y-6">
+          <div className="bg-blue-50/60 rounded-xl p-4 border border-blue-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-blue-900">Client Information</p>
+                <p className="text-xs text-blue-600">Update client details</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Client Name" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} required />
+              <Input label="Client Email" type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} required />
+              <Input label="Phone" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+              <Input label="Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
+            </div>
           </div>
-          <Input label="Client Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
-          <div>
-            <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+
+          <div className="bg-emerald-50/60 rounded-xl p-4 border border-emerald-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">Invoice Details</p>
+                <p className="text-xs text-emerald-600">Amount, due date, and notes</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Amount (USD)" type="number" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} step="0.01" required />
+              <Input label="Due Date" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} required />
+            </div>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Notes</label>
+              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
+            </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
             <Button type="submit" loading={submitting}>Save Changes</Button>
           </div>

@@ -167,38 +167,93 @@ export default function SequencesPage() {
         )}
       </div>
 
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Sequence">
-        <form onSubmit={handleCreate} className="space-y-4">
-          <Input label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Standard Reminder Sequence" required />
-          <Input label="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Friendly reminder at 3 days, urgent at 7 days" hint="Optional — helps you remember what this sequence does" />
-          <Select label="Applies to" value={form.applies_to_status} onChange={(e) => setForm({ ...form, applies_to_status: e.target.value })} options={[{ value: "sent", label: "Sent invoices" }, { value: "overdue", label: "Overdue invoices" }]} />
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Sequence" size="lg">
+        <form onSubmit={handleCreate} className="space-y-6">
+          <div className="bg-emerald-50/60 rounded-xl p-4 border border-emerald-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <Repeat className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-900">Sequence Basics</p>
+                <p className="text-xs text-emerald-600">Name your workflow and choose when it triggers</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Input label="Sequence Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Standard Reminder Flow" required />
+              <Input label="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Friendly reminder at 3 days, escalate at 7…" />
+              <Select label="Trigger On" value={form.applies_to_status} onChange={(e) => setForm({ ...form, applies_to_status: e.target.value })} options={[{ value: "sent", label: "When invoice is sent" }, { value: "overdue", label: "When invoice becomes overdue" }]} />
+            </div>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+              <p className="text-xs font-medium text-amber-700 uppercase tracking-wider">Tip</p>
+            </div>
+            <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
+              You can add reminder steps after creating the sequence. Each step sends an email after a set delay.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button type="submit" loading={submitting}>Create</Button>
+            <Button type="submit" loading={submitting}><Plus className="w-4 h-4" />Create Sequence</Button>
           </div>
         </form>
       </Modal>
 
       <Modal open={stepModalOpen} onClose={() => { setStepModalOpen(false); setEditingStep(null); }} title={editingStep ? "Edit Step" : "Add Step"} size="lg">
-        <form onSubmit={saveStep} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input label="Step Number" type="number" value={String(stepForm.step_number)} onChange={(e) => setStepForm({ ...stepForm, step_number: parseInt(e.target.value) || 1 })} min={1} />
-            <Input label="Delay (days after due)" type="number" value={String(stepForm.delay_days)} onChange={(e) => setStepForm({ ...stepForm, delay_days: parseInt(e.target.value) || 3 })} min={1} hint="Days after invoice due date" />
+        <form onSubmit={saveStep} className="space-y-6">
+          <div className="bg-indigo-50/60 rounded-xl p-4 border border-indigo-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-indigo-900">Step Configuration</p>
+                <p className="text-xs text-indigo-600">Order, timing, and action</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <Input label="Step #" type="number" value={String(stepForm.step_number)} onChange={(e) => setStepForm({ ...stepForm, step_number: parseInt(e.target.value) || 1 })} min={1} hint="Position in sequence" />
+              <Input label="Delay (days)" type="number" value={String(stepForm.delay_days)} onChange={(e) => setStepForm({ ...stepForm, delay_days: parseInt(e.target.value) || 3 })} min={1} hint="After invoice due date" />
+              <Select label="Action" value={stepForm.action} onChange={(e) => setStepForm({ ...stepForm, action: e.target.value })} options={[
+                { value: "send_email", label: "Send email" },
+                { value: "mark_overdue", label: "Mark overdue" },
+                { value: "send_email_and_mark_overdue", label: "Email & mark overdue" },
+              ]} />
+            </div>
           </div>
-          <Input label="Email Subject" value={stepForm.subject} onChange={(e) => setStepForm({ ...stepForm, subject: e.target.value })} placeholder="Gentle reminder: Invoice is due" required />
-          <div>
-            <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Email Body</label>
-            <textarea value={stepForm.body_text} onChange={(e) => setStepForm({ ...stepForm, body_text: e.target.value })} rows={5} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder={"Hi {{client_name}},\n\nThis is a reminder about your invoice of ${{amount}}.\n\nPay here: {{payment_link}}\n\nThanks!"} required />
-            <p className="text-xs text-[var(--fg-muted)] mt-1.5">Use {'{{client_name}}'}, {'{{amount}}'}, {'{{payment_link}}'} as placeholders</p>
+
+          <div className="bg-violet-50/60 rounded-xl p-4 border border-violet-100">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-violet-900">Email Content</p>
+                <p className="text-xs text-violet-600">What the client will receive</p>
+              </div>
+            </div>
+            <Input label="Subject Line" value={stepForm.subject} onChange={(e) => setStepForm({ ...stepForm, subject: e.target.value })} placeholder="Gentle reminder: Invoice is due" required />
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Email Body</label>
+              <textarea value={stepForm.body_text} onChange={(e) => setStepForm({ ...stepForm, body_text: e.target.value })} rows={5} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder={"Hi {{client_name}},\n\nThis is a reminder about your invoice of ${{amount}}.\n\nPay here: {{payment_link}}\n\nThanks!"} required />
+              <div className="flex items-center gap-2 mt-2">
+                <div className="px-2 py-0.5 bg-violet-100 rounded text-xs text-violet-700 font-mono">{'{{client_name}}'}</div>
+                <span className="text-xs text-[var(--fg-muted)]">Client name</span>
+                <div className="px-2 py-0.5 bg-violet-100 rounded text-xs text-violet-700 font-mono">{'{{amount}}'}</div>
+                <span className="text-xs text-[var(--fg-muted)]">Invoice amount</span>
+                <div className="px-2 py-0.5 bg-violet-100 rounded text-xs text-violet-700 font-mono">{'{{payment_link}}'}</div>
+                <span className="text-xs text-[var(--fg-muted)]">Payment link</span>
+              </div>
+            </div>
           </div>
-          <Select label="Action" value={stepForm.action} onChange={(e) => setStepForm({ ...stepForm, action: e.target.value })} options={[
-            { value: "send_email", label: "Send email only" },
-            { value: "mark_overdue", label: "Mark as overdue only" },
-            { value: "send_email_and_mark_overdue", label: "Send email & mark overdue" },
-          ]} />
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button type="button" variant="secondary" onClick={() => { setStepModalOpen(false); setEditingStep(null); }}>Cancel</Button>
-            <Button type="submit" loading={submitting}>{editingStep ? "Save Step" : "Add Step"}</Button>
+            <Button type="submit" loading={submitting}><Plus className="w-4 h-4" />{editingStep ? "Save Step" : "Add Step"}</Button>
           </div>
         </form>
       </Modal>
