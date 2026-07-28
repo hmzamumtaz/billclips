@@ -35,16 +35,11 @@ export default function InvoicesPage() {
       const params = new URLSearchParams({ sort: sortKey, dir: sortDir });
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (search) params.set("q", search);
-
       const res = await fetch(`/api/invoices?${params}`);
       if (!res.ok) throw new Error("Failed to fetch");
       setInvoices(await res.json());
-    } catch (err) {
-      toast.error("Failed to load invoices");
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { toast.error("Failed to load invoices"); console.error(err); }
+    finally { setLoading(false); }
   }, [search, statusFilter, sortKey, sortDir]);
 
   useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
@@ -63,134 +58,60 @@ export default function InvoicesPage() {
     return <Badge variant={map[status] || "sent"}>{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>;
   }
 
-  function resetForm() {
-    setForm({ client_name: "", client_email: "", client_phone: "", client_address: "", amount: "", due_date: "", notes: "" });
-  }
+  function resetForm() { setForm({ client_name: "", client_email: "", client_phone: "", client_address: "", amount: "", due_date: "", notes: "" }); }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.client_name || !form.client_email || !form.amount || !form.due_date) {
-      toast.error("All fields are required");
-      return;
-    }
+    if (!form.client_name || !form.client_email || !form.amount || !form.due_date) { toast.error("All fields are required"); return; }
     const amountCents = Math.round(parseFloat(form.amount) * 100);
     if (isNaN(amountCents) || amountCents <= 0) { toast.error("Invalid amount"); return; }
-
     setSubmitting(true);
     try {
-      const res = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_name: form.client_name,
-          client_email: form.client_email,
-          client_phone: form.client_phone,
-          client_address: form.client_address,
-          amount_cents: amountCents,
-          due_date: form.due_date,
-          notes: form.notes,
-        }),
-      });
+      const res = await fetch("/api/invoices", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_name: form.client_name, client_email: form.client_email, client_phone: form.client_phone, client_address: form.client_address, amount_cents: amountCents, due_date: form.due_date, notes: form.notes }) });
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
-      toast.success("Invoice created");
-      setCreateOpen(false);
-      resetForm();
-      fetchInvoices();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create");
-    } finally {
-      setSubmitting(false);
-    }
+      toast.success("Invoice created"); setCreateOpen(false); resetForm(); fetchInvoices();
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to create"); }
+    finally { setSubmitting(false); }
   }
 
   async function handleEdit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedInvoice) return;
+    e.preventDefault(); if (!selectedInvoice) return;
     const amountCents = Math.round(parseFloat(form.amount) * 100);
     if (isNaN(amountCents) || amountCents <= 0) { toast.error("Invalid amount"); return; }
-
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/invoices/${selectedInvoice.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_name: form.client_name,
-          client_email: form.client_email,
-          client_phone: form.client_phone,
-          client_address: form.client_address,
-          amount_cents: amountCents,
-          due_date: form.due_date,
-          notes: form.notes,
-        }),
-      });
+      const res = await fetch(`/api/invoices/${selectedInvoice.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_name: form.client_name, client_email: form.client_email, client_phone: form.client_phone, client_address: form.client_address, amount_cents: amountCents, due_date: form.due_date, notes: form.notes }) });
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
-      toast.success("Invoice updated");
-      setEditOpen(false);
-      fetchInvoices();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update");
-    } finally {
-      setSubmitting(false);
-    }
+      toast.success("Invoice updated"); setEditOpen(false); fetchInvoices();
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed to update"); }
+    finally { setSubmitting(false); }
   }
 
   async function handleDelete() {
-    if (!selectedInvoice) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch(`/api/invoices/${selectedInvoice.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed to delete");
-      toast.success("Invoice deleted");
-      setDeleteOpen(false);
-      fetchInvoices();
-    } catch (err) {
-      toast.error("Failed to delete");
-    } finally {
-      setSubmitting(false);
-    }
+    if (!selectedInvoice) return; setSubmitting(true);
+    try { const res = await fetch(`/api/invoices/${selectedInvoice.id}`, { method: "DELETE" }); if (!res.ok) throw new Error("Failed"); toast.success("Invoice deleted"); setDeleteOpen(false); fetchInvoices(); }
+    catch { toast.error("Failed to delete"); }
+    finally { setSubmitting(false); }
   }
 
   async function sendNudge(invoiceId: string) {
     setSending(invoiceId);
-    try {
-      const res = await fetch("/api/send-nudge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId }),
-      });
-      if (res.ok) toast.success("Reminder sent");
-      else toast.error("Failed to send");
-    } catch { toast.error("Failed to send"); }
+    try { const res = await fetch("/api/send-nudge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ invoiceId }) }); if (res.ok) toast.success("Reminder sent"); else toast.error("Failed"); }
+    catch { toast.error("Failed"); }
     finally { setSending(null); }
   }
 
   function openEdit(inv: Invoice) {
-    setSelectedInvoice(inv);
-    setForm({
-      client_name: inv.client_name,
-      client_email: inv.client_email,
-      client_phone: inv.client_phone || "",
-      client_address: inv.client_address || "",
-      amount: (inv.amount_cents / 100).toFixed(2),
-      due_date: inv.due_date,
-      notes: inv.notes || "",
-    });
-    setEditOpen(true);
-  }
-
-  function openDetail(inv: Invoice) {
-    setSelectedInvoice(inv);
-    setDetailOpen(true);
+    setSelectedInvoice(inv); setForm({ client_name: inv.client_name, client_email: inv.client_email, client_phone: inv.client_phone || "", client_address: inv.client_address || "", amount: (inv.amount_cents / 100).toFixed(2), due_date: inv.due_date, notes: inv.notes || "" }); setEditOpen(true);
   }
 
   return (
-    <div>
-      <div className="border-b border-slate-200 bg-white">
+    <div className="animate-fade-in">
+      <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">Invoices</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Manage and track all your invoices</p>
+            <h1 className="text-xl font-semibold text-[var(--fg)]">Invoices</h1>
+            <p className="text-sm text-[var(--fg-muted)] mt-0.5">Manage and track all your invoices</p>
           </div>
           <Button onClick={() => { resetForm(); setCreateOpen(true); }} size="sm">
             <Plus className="w-4 h-4" />
@@ -201,13 +122,13 @@ export default function InvoicesPage() {
 
       <div className="p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--fg-muted)]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search invoices..."
-              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-[var(--radius-sm)] bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
             />
           </div>
           <Select
@@ -223,24 +144,38 @@ export default function InvoicesPage() {
             ]}
             className="w-40"
           />
+          <p className="text-xs text-[var(--fg-muted)] ml-auto">{invoices.length} invoice{invoices.length !== 1 ? "s" : ""}</p>
         </div>
 
         <Card>
           {loading ? (
-            <div className="p-8 text-center text-sm text-slate-400">Loading...</div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead><tr className="border-b border-slate-200">
+                  {["Number", "Client", "Email", "Amount", "Due Date", "Status", ""].map((h) => (
+                    <th key={h} className="text-left px-4 py-3.5 text-xs font-semibold text-[var(--fg-muted)] uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i} className="border-b border-slate-50">
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <td key={j} className="px-4 py-3.5"><div className="h-4 bg-slate-100 rounded animate-pulse" style={{ width: `${40 + Math.random() * 50}%` }} /></td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : invoices.length === 0 ? (
             <div className="p-6">
-              <EmptyState
-                title="No invoices yet"
-                description="Create your first invoice to start tracking payments."
-                action={{ label: "Create Invoice", onClick: () => { resetForm(); setCreateOpen(true); } }}
-              />
+              <EmptyState title="No invoices yet" description="Create your first invoice to start tracking payments." action={{ label: "Create Invoice", onClick: () => { resetForm(); setCreateOpen(true); } }} />
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50/50">
+                  <tr className="border-b border-slate-200">
                     {[
                       { key: "invoice_number", label: "Number", sortable: true },
                       { key: "client_name", label: "Client", sortable: true },
@@ -250,40 +185,38 @@ export default function InvoicesPage() {
                       { key: "status", label: "Status", sortable: true },
                       { key: "actions", label: "" },
                     ].map((col) => (
-                      <th
-                        key={col.key}
-                        onClick={() => col.sortable && handleSort(col.key)}
-                        className={`px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider ${col.sortable ? "cursor-pointer hover:text-slate-700 select-none" : ""}`}
-                      >
-                        {col.label}
-                        {sortKey === col.key && <span className="ml-1 text-emerald-600">{sortDir === "asc" ? "↑" : "↓"}</span>}
+                      <th key={col.key} onClick={() => col.sortable && handleSort(col.key)}
+                        className={`text-left px-4 py-3.5 text-xs font-semibold text-[var(--fg-muted)] uppercase tracking-wider ${col.sortable ? "cursor-pointer hover:text-[var(--fg)] select-none" : ""}`}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {col.label}
+                          {col.sortable && (
+                            <span className={`inline-flex flex-col leading-none text-[10px] ${sortKey === col.key ? "text-emerald-600" : "text-slate-300"}`}>
+                              <span className={sortKey === col.key && sortDir === "asc" ? "text-emerald-600" : ""}>▲</span>
+                              <span className={sortKey === col.key && sortDir === "desc" ? "text-emerald-600" : ""}>▼</span>
+                            </span>
+                          )}
+                        </span>
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100/80">
                   {invoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-mono text-slate-600">{inv.invoice_number || "—"}</td>
-                      <td className="px-4 py-3">
-                        <button onClick={() => openDetail(inv)} className="text-sm font-medium text-slate-900 hover:text-emerald-600">{inv.client_name}</button>
+                    <tr key={inv.id} className="hover:bg-emerald-50/40 transition-colors duration-100">
+                      <td className="px-4 py-3.5 text-sm font-mono text-[var(--fg-muted)]">{inv.invoice_number || "—"}</td>
+                      <td className="px-4 py-3.5">
+                        <button onClick={() => { setSelectedInvoice(inv); setDetailOpen(true); }} className="text-sm font-medium text-[var(--fg)] hover:text-emerald-600 transition-colors">{inv.client_name}</button>
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{inv.client_email}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-900">{formatCurrency(inv.amount_cents)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-500">{new Date(inv.due_date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3">{statusBadge(inv.status)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => openDetail(inv)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"><Eye className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => openEdit(inv)} className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"><Edit3 className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => sendNudge(inv.id)} disabled={sending === inv.id || inv.status === "paid"} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30"><Send className={`w-3.5 h-3.5 ${sending === inv.id ? "animate-pulse" : ""}`} /></button>
-                          <button
-                            onClick={() => { setSelectedInvoice(inv); setDeleteOpen(true); }}
-                            disabled={inv.status === "paid"}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-30"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                      <td className="px-4 py-3.5 text-sm text-[var(--fg-muted)]">{inv.client_email}</td>
+                      <td className="px-4 py-3.5 text-sm font-semibold text-[var(--fg)]">{formatCurrency(inv.amount_cents)}</td>
+                      <td className="px-4 py-3.5 text-sm text-[var(--fg-muted)]">{new Date(inv.due_date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3.5">{statusBadge(inv.status)}</td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-0.5">
+                          <button onClick={() => { setSelectedInvoice(inv); setDetailOpen(true); }} className="p-1.5 rounded-lg text-[var(--fg-muted)] hover:text-slate-600 hover:bg-slate-100 transition-colors"><Eye className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => openEdit(inv)} className="p-1.5 rounded-lg text-[var(--fg-muted)] hover:text-emerald-600 hover:bg-emerald-50 transition-colors"><Edit3 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => sendNudge(inv.id)} disabled={sending === inv.id || inv.status === "paid"} className="p-1.5 rounded-lg text-[var(--fg-muted)] hover:text-blue-600 hover:bg-blue-50 disabled:opacity-30 transition-colors"><Send className={`w-3.5 h-3.5 ${sending === inv.id ? "animate-pulse" : ""}`} /></button>
+                          <button onClick={() => { setSelectedInvoice(inv); setDeleteOpen(true); }} disabled={inv.status === "paid"} className="p-1.5 rounded-lg text-[var(--fg-muted)] hover:text-red-600 hover:bg-red-50 disabled:opacity-30 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                         </div>
                       </td>
                     </tr>
@@ -295,7 +228,6 @@ export default function InvoicesPage() {
         </Card>
       </div>
 
-      {/* Create Modal */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Invoice" size="lg">
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -307,17 +239,16 @@ export default function InvoicesPage() {
           </div>
           <Input label="Client Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} placeholder="123 Main St, City" />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Optional notes..." />
+            <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Notes</label>
+            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="Optional notes..." />
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button type="submit" loading={submitting}>Create Invoice</Button>
           </div>
         </form>
       </Modal>
 
-      {/* Edit Modal */}
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Invoice" size="lg">
         <form onSubmit={handleEdit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -329,56 +260,55 @@ export default function InvoicesPage() {
           </div>
           <Input label="Client Address" value={form.client_address} onChange={(e) => setForm({ ...form, client_address: e.target.value })} />
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <label className="block text-sm font-medium text-[var(--fg)] mb-1.5">Notes</label>
+            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className="block w-full rounded-[var(--radius-sm)] border border-slate-300 bg-white px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" />
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
             <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
             <Button type="submit" loading={submitting}>Save Changes</Button>
           </div>
         </form>
       </Modal>
 
-      {/* Detail Modal */}
       <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title="Invoice Details" size="lg">
         {selectedInvoice && (
           <div className="space-y-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-slate-500">Invoice #{selectedInvoice.invoice_number}</p>
-                <p className="text-lg font-semibold text-slate-900 mt-1">{selectedInvoice.client_name}</p>
+                <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Invoice #{selectedInvoice.invoice_number}</p>
+                <p className="text-lg font-semibold text-[var(--fg)] mt-1">{selectedInvoice.client_name}</p>
               </div>
               {statusBadge(selectedInvoice.status)}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-xs font-medium text-slate-500 uppercase">Client Email</p>
-                <p className="text-sm text-slate-900">{selectedInvoice.client_email}</p>
+                <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Email</p>
+                <p className="text-sm text-[var(--fg)]">{selectedInvoice.client_email}</p>
               </div>
               {selectedInvoice.client_phone && (
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-slate-500 uppercase">Phone</p>
-                  <p className="text-sm text-slate-900">{selectedInvoice.client_phone}</p>
+                  <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Phone</p>
+                  <p className="text-sm text-[var(--fg)]">{selectedInvoice.client_phone}</p>
                 </div>
               )}
               <div className="space-y-1">
-                <p className="text-xs font-medium text-slate-500 uppercase">Amount</p>
-                <p className="text-lg font-bold text-slate-900">{formatCurrency(selectedInvoice.amount_cents)}</p>
+                <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Amount</p>
+                <p className="text-xl font-bold text-[var(--fg)]">{formatCurrency(selectedInvoice.amount_cents)}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-medium text-slate-500 uppercase">Due Date</p>
-                <p className="text-sm text-slate-900">{new Date(selectedInvoice.due_date).toLocaleDateString()}</p>
+                <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Due Date</p>
+                <p className="text-sm text-[var(--fg)]">{new Date(selectedInvoice.due_date).toLocaleDateString()}</p>
               </div>
               {selectedInvoice.client_address && (
                 <div className="space-y-1 col-span-2">
-                  <p className="text-xs font-medium text-slate-500 uppercase">Address</p>
-                  <p className="text-sm text-slate-900">{selectedInvoice.client_address}</p>
+                  <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Address</p>
+                  <p className="text-sm text-[var(--fg)]">{selectedInvoice.client_address}</p>
                 </div>
               )}
               {selectedInvoice.notes && (
                 <div className="space-y-1 col-span-2">
-                  <p className="text-xs font-medium text-slate-500 uppercase">Notes</p>
-                  <p className="text-sm text-slate-600">{selectedInvoice.notes}</p>
+                  <p className="text-xs font-medium text-[var(--fg-muted)] uppercase tracking-wider">Notes</p>
+                  <p className="text-sm text-[var(--fg-muted)]">{selectedInvoice.notes}</p>
                 </div>
               )}
             </div>
@@ -386,15 +316,19 @@ export default function InvoicesPage() {
         )}
       </Modal>
 
-      {/* Delete Confirmation */}
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Delete Invoice" size="sm">
-        <p className="text-sm text-slate-600">Are you sure you want to delete this invoice? This action cannot be undone.</p>
-        {selectedInvoice && (
-          <p className="text-sm font-medium text-slate-900 mt-2">{selectedInvoice.client_name} — {formatCurrency(selectedInvoice.amount_cents)}</p>
-        )}
-        <div className="flex justify-end gap-3 pt-6">
-          <Button variant="secondary" onClick={() => setDeleteOpen(false)}>Cancel</Button>
-          <Button variant="danger" onClick={handleDelete} loading={submitting}>Delete</Button>
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--fg-muted)]">Are you sure you want to delete this invoice? This action cannot be undone.</p>
+          {selectedInvoice && (
+            <div className="bg-red-50 rounded-lg p-3 border border-red-100">
+              <p className="text-sm font-medium text-red-800">{selectedInvoice.client_name}</p>
+              <p className="text-xs text-red-600 mt-0.5">{formatCurrency(selectedInvoice.amount_cents)}</p>
+            </div>
+          )}
+          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+            <Button variant="secondary" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete} loading={submitting}>Delete</Button>
+          </div>
         </div>
       </Modal>
     </div>

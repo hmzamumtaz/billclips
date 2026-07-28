@@ -20,19 +20,22 @@ export function Tabs({ tabs, active, onChange }: TabsProps) {
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`relative px-4 py-3 text-sm font-medium transition-colors ${
               active === tab.id
-                ? "border-emerald-600 text-emerald-600"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                ? "text-emerald-600"
+                : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
             }`}
           >
             {tab.label}
             {tab.count !== undefined && (
               <span className={`ml-2 px-1.5 py-0.5 text-xs rounded-full ${
-                active === tab.id ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"
+                active === tab.id ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-[var(--fg-muted)]"
               }`}>
                 {tab.count}
               </span>
+            )}
+            {active === tab.id && (
+              <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-emerald-600 rounded-full" />
             )}
           </button>
         ))}

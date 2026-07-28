@@ -1,31 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --sidebar-bg: #0f172a;
-  --sidebar-hover: #1e293b;
-  --sidebar-active: #059669;
-  --sidebar-text: #94a3b8;
-  --sidebar-text-active: #f8fafc;
-  --card-bg: #ffffff;
+  --bg: #f0fdf4;
+  --bg-alt: #f8fafc;
+  --fg: #0c1b0e;
+  --fg-muted: #64748b;
+  --card: #ffffff;
   --card-border: #e2e8f0;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --card-shadow-hover: 0 4px 12px 0 rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.08);
   --accent: #059669;
   --accent-hover: #047857;
   --accent-light: #d1fae5;
-  --accent-subtle: #ecfdf5;
-  --warning: #d97706;
-  --warning-light: #fef3c7;
+  --accent-bg: #ecfdf5;
+  --sidebar-bg: #0c1b0e;
+  --sidebar-hover: #1a3320;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #f8fafc;
   --danger: #dc2626;
-  --danger-light: #fee2e2;
+  --danger-bg: #fef2f2;
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
   --info: #2563eb;
-  --info-light: #dbeafe;
-  --muted: #94a3b8;
+  --info-bg: #eff6ff;
+  --radius: 12px;
+  --radius-sm: 8px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -36,7 +40,41 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-alt);
+  color: var(--fg);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent-light);
+  color: var(--accent-hover);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
 }
