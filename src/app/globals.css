@@ -3,18 +3,24 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
-  --sidebar-bg: #1e293b;
-  --sidebar-text: #cbd5e1;
-  --sidebar-hover: #334155;
-  --sidebar-active: #0f766e;
+  --sidebar-bg: #0f172a;
+  --sidebar-hover: #1e293b;
+  --sidebar-active: #059669;
+  --sidebar-text: #94a3b8;
+  --sidebar-text-active: #f8fafc;
   --card-bg: #ffffff;
   --card-border: #e2e8f0;
   --accent: #059669;
+  --accent-hover: #047857;
   --accent-light: #d1fae5;
+  --accent-subtle: #ecfdf5;
   --warning: #d97706;
   --warning-light: #fef3c7;
   --danger: #dc2626;
   --danger-light: #fee2e2;
+  --info: #2563eb;
+  --info-light: #dbeafe;
+  --muted: #94a3b8;
 }
 
 @theme inline {
@@ -24,8 +30,13 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
 }

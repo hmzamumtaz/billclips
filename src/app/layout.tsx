@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "BillClips — Automated AR & Invoice Chasing",
-  description: "Automated accounts receivable and late invoice management",
+  description: "Automated accounts receivable and late invoice management platform",
 };
 
 export default function RootLayout({
@@ -31,16 +31,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex">
         <Sidebar />
-        <main className="flex-1 ml-64 min-h-screen">
-          <div className="border-b border-[var(--card-border)] bg-white px-8 py-4">
-            <nav className="text-sm text-slate-500">
-              <span className="text-slate-900 font-medium">BillClips</span>
-              <span className="mx-2">/</span>
-              <span id="breadcrumb">Dashboard</span>
-            </nav>
-          </div>
-          <div className="p-8">{children}</div>
-        </main>
+        <div className="flex-1 ml-64 min-h-screen flex flex-col">
+          {children}
+        </div>
         <Toaster
           position="top-right"
           toastOptions={{
@@ -49,6 +42,7 @@ export default function RootLayout({
               background: "var(--card-bg)",
               color: "var(--foreground)",
               border: "1px solid var(--card-border)",
+              fontSize: "14px",
             },
           }}
         />
