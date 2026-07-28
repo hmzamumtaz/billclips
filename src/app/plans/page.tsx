@@ -23,12 +23,26 @@ export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [yearly, setYearly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/plans")
-      .then((res) => res.json())
-      .then(setPlans)
-      .catch(console.error)
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to load plans");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setPlans(data);
+        setError("");
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message);
+        setPlans([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -60,6 +74,13 @@ export default function PlansPage() {
       <div className="p-6">
         {loading ? (
           <div className="text-center text-sm text-slate-400 py-12">Loading plans...</div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-xs text-slate-400 mt-2">Run the Supabase migration to seed plan data.</p>
+          </div>
+        ) : plans.length === 0 ? (
+          <div className="text-center text-sm text-slate-400 py-12">No plans available</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {plans.map((plan) => (
