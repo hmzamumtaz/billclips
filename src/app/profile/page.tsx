@@ -24,11 +24,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const supabaseRef = useRef<ReturnType<typeof createBrowserSupabaseClient> | null>(null);
   const [form, setForm] = useState({ full_name: "", business_name: "", email: "", timezone: "UTC" });
 
-  const supabase = createBrowserSupabaseClient();
-
   useEffect(() => {
+    try { supabaseRef.current = createBrowserSupabaseClient(); } catch {}
     fetchProfile();
   }, []);
 
@@ -72,15 +72,23 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) { toast.error("Image must be under 2MB"); return; }
+    if (!supabaseRef.current) { toast.error("Storage not available"); return; }
 
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
       const filePath = `avatars/${authUser?.id}.${ext}`;
+      const supabase = supabaseRef.current;
+
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, { upsert: true });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message?.includes("bucket") || uploadError.message?.includes("not found")) {
+          throw new Error("Avatars bucket not created. Run: supabase storage create avatars or create it in Supabase dashboard.");
+        }
+        throw uploadError;
+      }
 
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
@@ -93,7 +101,8 @@ export default function ProfilePage() {
       toast.success("Avatar updated");
       fetchProfile();
     } catch (err) {
-      toast.error("Failed to upload image");
+      const msg = err instanceof Error ? err.message : "Failed to upload image";
+      toast.error(msg);
       console.error(err);
     }
     finally { setUploading(false); }
