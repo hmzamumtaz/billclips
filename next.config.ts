@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["stripe"],
+  turbopack: {
+    root: process.cwd(),
+  },
 };
 
 export default nextConfig;
