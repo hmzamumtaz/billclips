@@ -31,7 +31,7 @@ export default function LoginPage() {
     try {
       const res = await fetch("/api/seed-demo", { method: "POST" });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || "Failed"); return; }
+      if (!res.ok) { toast.error(typeof data.error === "string" ? data.error : JSON.stringify(data.error)); return; }
       setEmail(data.email);
       setPassword(data.password);
       toast.success("Demo credentials filled — sign in below");
