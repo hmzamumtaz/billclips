@@ -28,7 +28,7 @@ const bottomNav = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-const publicPages = ["/login", "/signup"];
+const publicPages = ["/", "/login", "/signup"];
 
 export function Sidebar() {
   const pathname = usePathname();
