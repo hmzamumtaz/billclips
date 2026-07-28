@@ -76,8 +76,8 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ message: `Seeded ${invoiceRows.length} invoices and 1 sequence with 3 steps` });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to seed data";
-    console.error("POST /api/seed error:", msg);
+    console.error("POST /api/seed error:", err);
+    const msg = err instanceof Error ? err.message : (typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err));
     return Response.json({ error: msg }, { status: 500 });
   }
 }
