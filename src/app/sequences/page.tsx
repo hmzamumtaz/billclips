@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Repeat, PauseCircle, PlayCircle, Settings2, Trash2, GripVertical, ArrowRight } from "lucide-react";
+import { Plus, Repeat, PauseCircle, PlayCircle, Settings2, Trash2, Edit3, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { Card, CardHeader, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -16,10 +16,12 @@ export default function SequencesPage() {
   const [sequences, setSequences] = useState<Sequence[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [stepModalOpen, setStepModalOpen] = useState(false);
   const [selectedSeq, setSelectedSeq] = useState<Sequence | null>(null);
   const [editingStep, setEditingStep] = useState<SequenceStep | null>(null);
   const [form, setForm] = useState({ name: "", description: "", applies_to_status: "sent" });
+  const [editForm, setEditForm] = useState({ name: "", description: "", applies_to_status: "sent" });
   const [stepForm, setStepForm] = useState({ step_number: 1, delay_days: 3, subject: "", body_text: "", action: "send_email" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,6 +40,23 @@ export default function SequencesPage() {
       const res = await fetch("/api/sequences", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       if (!res.ok) throw new Error((await res.json()).error || "Failed");
       toast.success("Sequence created"); setCreateOpen(false); setForm({ name: "", description: "", applies_to_status: "sent" }); fetchSequences();
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
+    finally { setSubmitting(false); }
+  }
+
+  function openEdit(seq: Sequence) {
+    setSelectedSeq(seq);
+    setEditForm({ name: seq.name, description: seq.description || "", applies_to_status: seq.applies_to_status });
+    setEditOpen(true);
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault(); if (!selectedSeq || !editForm.name) { toast.error("Name is required"); return; }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/sequences/${selectedSeq.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editForm) });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Sequence updated"); setEditOpen(false); fetchSequences();
     } catch (err) { toast.error(err instanceof Error ? err.message : "Failed"); }
     finally { setSubmitting(false); }
   }
@@ -121,6 +140,9 @@ export default function SequencesPage() {
                       <button onClick={() => toggleActive(seq)} className="p-2 rounded-lg text-[var(--fg-muted)] hover:text-emerald-600 hover:bg-emerald-50 transition-colors" title={seq.is_active ? "Pause" : "Activate"}>
                         {seq.is_active ? <PauseCircle className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
                       </button>
+                      <button onClick={() => openEdit(seq)} className="p-2 rounded-lg text-[var(--fg-muted)] hover:text-blue-600 hover:bg-blue-50 transition-colors" title="Edit">
+                        <Edit3 className="w-4 h-4" />
+                      </button>
                       <button onClick={() => openStepEditor(seq)} className="p-2 rounded-lg text-[var(--fg-muted)] hover:text-emerald-600 hover:bg-emerald-50 transition-colors" title="Manage steps">
                         <Settings2 className="w-4 h-4" />
                       </button>
@@ -199,6 +221,24 @@ export default function SequencesPage() {
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
             <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button type="submit" loading={submitting}><Plus className="w-4 h-4" />Create Sequence</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Sequence" size="md">
+        <form onSubmit={handleEdit} className="space-y-5">
+          <div className="bg-blue-50/60 rounded-xl p-4 border border-blue-100">
+            <Input label="Sequence Name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="e.g. Standard Reminder Flow" required />
+            <div className="mt-4">
+              <Input label="Description (optional)" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} placeholder="Friendly reminder at 3 days, escalate at 7…" />
+            </div>
+            <div className="mt-4">
+              <Select label="Trigger On" value={editForm.applies_to_status} onChange={(e) => setEditForm({ ...editForm, applies_to_status: e.target.value })} options={[{ value: "sent", label: "When invoice is sent" }, { value: "overdue", label: "When invoice becomes overdue" }]} />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <Button type="button" variant="secondary" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button type="submit" loading={submitting}><Edit3 className="w-4 h-4" />Save Changes</Button>
           </div>
         </form>
       </Modal>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Search, Filter, MoreHorizontal, Edit3, Trash2, Eye, Send, X } from "lucide-react";
+import { Plus, Search, Filter, MoreHorizontal, Edit3, Trash2, Eye, Send, X, Database } from "lucide-react";
 import toast from "react-hot-toast";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -29,6 +29,7 @@ export default function InvoicesPage() {
   const [form, setForm] = useState({ client_name: "", client_email: "", client_phone: "", client_address: "", amount: "", due_date: "", notes: "" });
   const [submitting, setSubmitting] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchInvoices = useCallback(async () => {
     try {
@@ -101,6 +102,13 @@ export default function InvoicesPage() {
     finally { setSending(null); }
   }
 
+  async function seedSampleData() {
+    setSeeding(true);
+    try { const res = await fetch("/api/seed", { method: "POST" }); const data = await res.json(); if (res.ok) { toast.success(data.message); fetchInvoices(); } else toast.error(data.error); }
+    catch { toast.error("Failed to seed data"); }
+    finally { setSeeding(false); }
+  }
+
   function openEdit(inv: Invoice) {
     setSelectedInvoice(inv); setForm({ client_name: inv.client_name, client_email: inv.client_email, client_phone: inv.client_phone || "", client_address: inv.client_address || "", amount: (inv.amount_cents / 100).toFixed(2), due_date: inv.due_date, notes: inv.notes || "" }); setEditOpen(true);
   }
@@ -169,7 +177,7 @@ export default function InvoicesPage() {
             </div>
           ) : invoices.length === 0 ? (
             <div className="p-6">
-              <EmptyState title="No invoices yet" description="Create your first invoice to start tracking payments." action={{ label: "Create Invoice", onClick: () => { resetForm(); setCreateOpen(true); } }} />
+              <EmptyState title="No invoices yet" description="Create an invoice manually or seed sample data to explore." action={{ label: "Create Invoice", onClick: () => { resetForm(); setCreateOpen(true); } }}><Button variant="ghost" size="sm" loading={seeding} onClick={seedSampleData}><Database className="w-3.5 h-3.5" />Seed sample data</Button></EmptyState>
             </div>
           ) : (
             <div className="overflow-x-auto">
