@@ -38,8 +38,7 @@ export default function RootLayout({
             {children}
           </AppShell>
           <Toaster
-            position="top-right"
-            containerStyle={{ top: 72 }}
+            position="bottom-right"
             toastOptions={{
               duration: 3000,
               style: {
