@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Receipt, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Receipt, Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
 
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
 
@@ -25,6 +26,19 @@ export default function LoginPage() {
     router.push("/dashboard");
   }
 
+  async function useDemoAccount() {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/seed-demo", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Failed"); return; }
+      setEmail(data.email);
+      setPassword(data.password);
+      toast.success("Demo credentials filled — sign in below");
+    } catch { toast.error("Failed to create demo account"); }
+    finally { setSeeding(false); }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] px-4">
       <div className="w-full max-w-sm">
@@ -35,6 +49,16 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
           <p className="text-sm text-slate-500 mt-1">Sign in to your BillClips account</p>
         </div>
+
+        <button
+          type="button"
+          onClick={useDemoAccount}
+          disabled={seeding}
+          className="w-full mb-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed text-emerald-700 text-sm font-medium rounded-lg border border-emerald-200 transition-colors inline-flex items-center justify-center gap-2"
+        >
+          <Sparkles className="w-4 h-4" />
+          {seeding ? "Setting up demo..." : "Use demo account"}
+        </button>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
