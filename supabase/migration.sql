@@ -1,15 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL,
-  full_name TEXT NOT NULL DEFAULT '',
   business_name TEXT NOT NULL DEFAULT '',
-  avatar_url TEXT,
-  timezone TEXT DEFAULT 'UTC',
-  plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'enterprise')),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  stripe_account_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE business_profiles (
@@ -151,13 +147,22 @@ LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, full_name)
-  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data ->> 'full_name', ''));
+  INSERT INTO public.users (id, email, business_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(
+      NEW.raw_user_meta_data ->> 'full_name',
+      NEW.raw_user_meta_data ->> 'business_name',
+      ''
+    )
+  );
   RETURN NEW;
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
